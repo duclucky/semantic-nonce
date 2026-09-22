@@ -140,7 +140,18 @@ async function main() {
   }
 
   async function read(method, args = []) {
-    return JSON.parse(String(await clients.principal.readContract({ address, functionName: method, args })));
+    let last;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      try {
+        return JSON.parse(String(await clients.principal.readContract({ address, functionName: method, args })));
+      } catch (error) {
+        last = error;
+        const message = String(error?.details ?? error?.message ?? error).toLowerCase();
+        if (!message.includes("server busy") && !message.includes("retry later") && !message.includes("temporarily")) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+    throw last;
   }
 
   async function leaseOrNull() {
