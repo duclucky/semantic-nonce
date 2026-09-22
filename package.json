@@ -1,0 +1,15 @@
+{
+  "name": "semantic-nonce",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check.ps1",
+    "lint:contracts": ".venv\\Scripts\\genvm-lint.exe check contracts/semantic_nonce.py",
+    "test:direct": ".venv\\Scripts\\python.exe -m pytest tests/direct -q",
+    "test:deployment": ".venv\\Scripts\\python.exe -m pytest tests/deployment -q",
+    "objective:precheck": ".venv\\Scripts\\python.exe scripts/precheck.py"
+  },
+  "devDependencies": {
+    "genlayer-js": "2.0.0-rc.1"
+  }
+}
