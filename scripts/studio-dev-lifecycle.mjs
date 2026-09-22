@@ -1,7 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createAccount, createClient, isSuccessful } from "genlayer-js";
+import {
+  CALL_KEY_UNNAMED,
+  MessageType,
+  createAccount,
+  createClient,
+  encodeExternalMessageFeeParams,
+  isSuccessful,
+} from "genlayer-js";
 import { studioDevnet } from "genlayer-js/chains";
 
 const PROJECT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -83,23 +90,42 @@ async function main() {
     const receipt = await clients.principal.waitForTransactionReceipt({
       hash: state.pending.hash, waitUntil: "finalized", interval: 3000, retries: 180,
     });
-    if (!isSuccessful(receipt)) throw new Error(`pending ${state.pending.method} finalized without successful execution`);
+    if (!isSuccessful(receipt)) {
+      state.failed ??= {};
+      state.failed[state.pending.hash] = { role: state.pending.role, method: state.pending.method, result: "FINISHED_WITH_ERROR" };
+      console.log(`LIFECYCLE_RECOVERED_FAILED role=${state.pending.role} method=${state.pending.method} hash=${state.pending.hash}`);
+    }
     state.pending = null;
     writeJson(STATE, state, 0o600);
   }
 
   async function write(role, method, args, value = 0n) {
     const client = clients[role];
+    const allocations = method === "withdraw_credit" ? [{
+      messageType: MessageType.External,
+      recipient: client.account.address,
+      callKey: CALL_KEY_UNNAMED,
+      budget: 42000n,
+      feeParams: encodeExternalMessageFeeParams({ gasLimit: 21000n, maxGasPrice: 2n }),
+    }] : undefined;
     let quote;
     try {
-      quote = await client.estimateTransactionFeesForWrite({ address, functionName: method, args, value });
+      quote = await client.estimateTransactionFeesForWrite({
+        address, functionName: method, args, value,
+        ...(allocations ? { messageAllocations: allocations } : {}),
+      });
     } catch {
+      if (allocations) throw new Error(`${method} fee simulation failed with required external message allocation`);
       quote = await client.estimateTransactionFees();
       console.log(`LIFECYCLE_FEE_SIMULATION_FALLBACK role=${role} method=${method}`);
     }
     const hash = await client.writeContract({
       address, functionName: method, args, value,
-      fees: { distribution: quote.distribution, feeValue: quote.feeValue },
+      fees: {
+        distribution: quote.distribution,
+        feeValue: quote.feeValue,
+        ...(quote.messageAllocations?.length ? { messageAllocations: quote.messageAllocations } : {}),
+      },
     });
     console.log(`LIFECYCLE_SUBMITTED role=${role} method=${method} value=${formatGen(value)} hash=${hash}`);
     const key = `${Object.keys(state.hashes).length + 1}_${role}_${method}`;
