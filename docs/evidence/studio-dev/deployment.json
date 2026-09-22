@@ -10,6 +10,7 @@
   "deploy": {
     "transactionHash": "0xcf4c56abe790e5de5e62ad1dae7ee370247b2e40d2c876d2d24b61cceea8729f",
     "status": "7",
+    "result": "SUCCESS",
     "executionResult": "FINISHED_WITH_RETURN"
   },
   "feeDepositGen": "0.100000000000010352 GEN",

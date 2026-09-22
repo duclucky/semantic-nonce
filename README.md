@@ -66,7 +66,7 @@ and debit-before-transfer.
 - [Contract Explorer](https://explorer-studio-dev.genlayer.com/address/0xD7CE68322ba69D2e4629A5F5801E560C34BdDD96)
 - [Successful deploy transaction](https://explorer-studio-dev.genlayer.com/transactions/0xcf4c56abe790e5de5e62ad1dae7ee370247b2e40d2c876d2d24b61cceea8729f)
 
-The sanitized deploy record shows `FINALIZED` and
+The sanitized deploy record shows `FINALIZED`, `Result: SUCCESS`, and
 `FINISHED_WITH_RETURN`; a fresh `get_accounting` read returned zero for all four
 ledger totals.
 
