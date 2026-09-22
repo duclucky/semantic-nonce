@@ -23,5 +23,6 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: npm ci --ignore-scripts
-      - run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+      - run: python -m venv .venv
+      - run: .venv\Scripts\python.exe -m pip install --disable-pip-version-check -r requirements-dev.txt
       - run: npm run check
