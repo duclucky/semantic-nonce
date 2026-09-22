@@ -78,18 +78,37 @@ async function main() {
   state.hashes ??= {};
   writeJson(STATE, state, 0o600);
 
+  if (state.pending?.hash) {
+    console.log(`LIFECYCLE_RECOVERING role=${state.pending.role} method=${state.pending.method} hash=${state.pending.hash}`);
+    const receipt = await clients.principal.waitForTransactionReceipt({
+      hash: state.pending.hash, waitUntil: "finalized", interval: 3000, retries: 180,
+    });
+    if (!isSuccessful(receipt)) throw new Error(`pending ${state.pending.method} finalized without successful execution`);
+    state.pending = null;
+    writeJson(STATE, state, 0o600);
+  }
+
   async function write(role, method, args, value = 0n) {
     const client = clients[role];
-    const quote = await client.estimateTransactionFeesForWrite({ address, functionName: method, args, value });
+    let quote;
+    try {
+      quote = await client.estimateTransactionFeesForWrite({ address, functionName: method, args, value });
+    } catch {
+      quote = await client.estimateTransactionFees();
+      console.log(`LIFECYCLE_FEE_SIMULATION_FALLBACK role=${role} method=${method}`);
+    }
     const hash = await client.writeContract({
       address, functionName: method, args, value,
       fees: { distribution: quote.distribution, feeValue: quote.feeValue },
     });
     console.log(`LIFECYCLE_SUBMITTED role=${role} method=${method} value=${formatGen(value)} hash=${hash}`);
-    const receipt = await client.waitForTransactionReceipt({ hash, waitUntil: "finalized", interval: 3000, retries: 180 });
-    if (!isSuccessful(receipt)) throw new Error(`${role} ${method} finalized without successful execution`);
     const key = `${Object.keys(state.hashes).length + 1}_${role}_${method}`;
     state.hashes[key] = String(hash);
+    state.pending = { role, method, hash: String(hash) };
+    writeJson(STATE, state, 0o600);
+    const receipt = await client.waitForTransactionReceipt({ hash, waitUntil: "finalized", interval: 3000, retries: 180 });
+    if (!isSuccessful(receipt)) throw new Error(`${role} ${method} finalized without successful execution`);
+    state.pending = null;
     writeJson(STATE, state, 0o600);
     console.log(`LIFECYCLE_FINALIZED role=${role} method=${method} feeDeposit=${formatGen(quote.feeValue)} hash=${hash}`);
   }
