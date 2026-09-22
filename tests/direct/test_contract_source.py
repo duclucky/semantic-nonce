@@ -43,6 +43,9 @@ def test_payable_metadata_and_debit_before_transfer():
     assert "@gl.public.write.payable\n    def create_lease" in source
     withdraw = methods["withdraw_credit"]
     assert withdraw.find("item.amount = bigint(0)") < withdraw.find("emit_transfer")
+    assert "@gl.evm.contract_interface" in source
+    assert "_Recipient(Address(_addr(item.owner))).emit_transfer" in source
+    assert "gl.chain.Account" not in source
 
 
 def test_prompt_binds_policy_candidate_history_and_forbids_value_authority():

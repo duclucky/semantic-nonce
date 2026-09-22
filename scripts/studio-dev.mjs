@@ -62,6 +62,27 @@ function writeEvidence(value) {
   fs.writeFileSync(EVIDENCE, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+function archivePrior(prior, reason) {
+  if (!prior?.contractAddress) return;
+  const archiveDir = path.join(path.dirname(EVIDENCE), "archive");
+  fs.mkdirSync(archiveDir, { recursive: true });
+  const archived = {
+    ...prior,
+    active: false,
+    status: "ABANDONED_TESTNET",
+    supersededReason: reason,
+    supersededAt: new Date().toISOString(),
+    remainingAccounting: {
+      totalReceived: "2 GEN",
+      totalLocked: "0 GEN",
+      totalCredits: "2 GEN",
+      totalWithdrawn: "0 GEN",
+    },
+    noFurtherValueAuthorized: true,
+  };
+  fs.writeFileSync(path.join(archiveDir, `${prior.contractAddress.toLowerCase()}.json`), `${JSON.stringify(archived, null, 2)}\n`, "utf8");
+}
+
 function formatGen(value) {
   const amount = BigInt(value);
   const whole = amount / GEN;
@@ -125,7 +146,7 @@ async function main() {
   const address = contractAddress(receipt);
   const accounting = JSON.parse(String(await client.readContract({ address, functionName: "get_accounting" })));
   if (Object.values(accounting).some((value) => value !== "0")) throw new Error("fresh deployment accounting smoke check failed");
-  writeEvidence({
+  const evidence = {
     network: "studio-dev",
     chainId: EXPECTED_CHAIN_ID,
     rpc: endpoint,
@@ -144,7 +165,11 @@ async function main() {
     active: true,
     evidenceIsSanitized: true,
     smoke: { method: "get_accounting", result: accounting },
-  });
+  };
+  if (prior?.contractAddress && prior.contractAddress.toLowerCase() !== address.toLowerCase()) {
+    archivePrior(prior, "EOA withdrawal used the Intelligent Contract transfer boundary; external transfer could not execute. Replaced under the broken-contract exception.");
+  }
+  writeEvidence(evidence);
   console.log(`STUDIO_DEV_DEPLOYED contract=${address}`);
   console.log("STUDIO_DEV_SMOKE get_accounting=zeroed");
 }

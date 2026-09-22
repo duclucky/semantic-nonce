@@ -17,6 +17,15 @@ MAX_ATTEMPTS = 2
 ZERO_ADDRESS = Address("0x0000000000000000000000000000000000000000")
 
 
+@gl.evm.contract_interface
+class _Recipient:
+    class View:
+        pass
+
+    class Write:
+        pass
+
+
 @allow_storage
 @dataclass
 class LeaseRecord:
@@ -583,4 +592,4 @@ class SemanticNonce(gl.contract.Contract):
         self.credits[key] = item
         self.total_credits -= amount
         self.total_withdrawn += amount
-        gl.chain.Account(Address(_addr(item.owner))).emit_transfer(value=u256(amount))
+        _Recipient(Address(_addr(item.owner))).emit_transfer(value=u256(amount))
