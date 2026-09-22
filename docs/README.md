@@ -337,6 +337,19 @@ IDs, accounting, payees, or destinations.
 - Cure/appeal/restore: no appeal in v1. One retry is allowed only after an
   explicit non-penalizing `RETRYABLE` result and before expiry.
 
+### Value-destination matrix
+
+| Value item | Payer/source | Locked state | Release destination | Refund destination | Forfeit destination | Terminal states covered | Duplicate/late/retry behavior | Canonical proof view |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Two-unit lease purse (2 GEN) | Principal via payable `create_lease` | Per-lease `locked=2 GEN`; global `total_locked += 2 GEN` while `ACTIVE` | Exactly 1 GEN becomes named-agent credit for each accepted `IN_SCOPE/NOVEL` action; no model-selected amount or payee | Every unused GEN becomes principal credit through `close_expired` at/after expiry | None | `EXHAUSTED` after two novel actions; `EXPIRED_CLOSED` after refund; withdrawn credits reach zero liability | Duplicate lease rejects before accounting; denied/retryable reviews move zero; late submit/review/consume rejects; close credits once | `get_lease`, `get_credit`, `get_accounting` |
+| Agent action credit (fixed 1 GEN each, max 2) | Reclassification of the lease purse after valid consensus | Pull-credit ledger under exact named agent; included in `total_credits` | Exact credited owner through `withdraw_credit`; ledger debited before EOA transfer | N/A: this is an earned credit after accepted semantic consequence and is not reclaimable by principal | None | Credit outstanding, then withdrawn; lease may be `ACTIVE` or `EXHAUSTED` | Replay/out-of-scope/retry creates no credit; duplicate terminal review rejects; zero-credit/double withdrawal rejects | `get_credit(agent)`, `get_accounting`, finalized transfer/balance evidence |
+| Principal expiry refund credit (0-2 GEN) | Remaining lease purse | Pull-credit ledger under exact principal after `close_expired`; included in `total_credits` | Exact principal through `withdraw_credit`; ledger debited before EOA transfer | Same destination: principal owns the refund credit | None | `EXPIRED_CLOSED`, then withdrawn or still claimable | Pre-expiry/wrong-caller/duplicate close rejects; pending and retryable actions receive no credit; close can credit only remaining locked value once | `get_lease`, `get_credit(principal)`, `get_accounting`, finalized transfer/balance evidence |
+| Transaction and message execution fees | Transaction sender, outside the contract purse/accounting | Network fee deposit, not SemanticNonce storage | Studio Dev fee mechanism and the explicitly budgeted EOA transfer message | Network-defined unused fee handling | Network-defined; never a contract payout | Every submitted transaction receipt | Not part of the 2 GEN lease purse; scripts estimate/budget messages and never label fees as contract credits | Sanitized transaction status/result plus sender balance evidence |
+
+No value item has a claimant-selected destination, arbitrary payout amount, or
+orphan-by-design terminal state. The archived broken Studio Dev revision is the
+explicit broken-contract replacement exception and receives no further value.
+
 ## Reusable interface
 
 ### Write methods
@@ -425,7 +438,7 @@ IDs, accounting, payees, or destinations.
 | Principal funds exactly two semantic actions with 2 GEN | `create_lease`, lease purse/budget | `get_lease`, `get_accounting` | exact-value/payability/accounting tests | Successful deploy + 2 GEN create receipt + canonical lease/accounting read |
 | Paraphrased prior effect is denied | `review_action` -> `REPLAY_DENIED` | `get_action`, `get_ticket`, `get_accounting` | semantic replay + malicious leader tests | Successful finalized replay review; no ticket/budget/credit delta reads |
 | Distinct in-scope effect receives one ticket and 1 GEN credit | `review_action` -> `AUTHORIZED` | action/ticket/credit/accounting views | novel settlement and invariant tests | Successful finalized review + fresh views |
-| Ticket is consumable once by the named consumer | `consume_ticket` | `get_ticket`, `can_consume` | caller/duplicate/time boundary tests | Finalized consume receipt + ticket read |
+| Ticket is consumable once by the named consumer | `consume_ticket` | `get_ticket` (`OPEN`, `CONSUMED`, or `EXPIRED`) | caller/duplicate/time boundary tests | Finalized consume receipt + ticket read |
 | Unused value cannot be orphaned | `close_expired` -> `EXPIRED_CLOSED` | lease/credit/accounting views | no-action and one-action refund tests | Required only if lifecycle leaves unused value; otherwise zero locked after two authorizations proves no remainder |
 | Credits withdraw exactly once | `withdraw_credit` | `get_credit`, `get_accounting` | double-withdraw/debit-first tests | Finalized transfer, recipient balance delta, zero credit/liability |
 | Validator checks meaning, not JSON shape | custom `run_nondet_default` validator | attempt/action views and source | pure semantic comparator, malicious valid-shape mismatch tests | Bounded Studio Dev consensus smoke with paraphrase and distinct effect |
