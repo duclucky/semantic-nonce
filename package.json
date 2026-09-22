@@ -9,7 +9,8 @@
     "test:deployment": ".venv\\Scripts\\python.exe -m pytest tests/deployment -q",
     "objective:precheck": ".venv\\Scripts\\python.exe scripts/precheck.py",
     "studio:preflight": "node scripts/studio-dev.mjs preflight",
-    "studio:deploy": "node scripts/studio-dev.mjs deploy"
+    "studio:deploy": "node scripts/studio-dev.mjs deploy",
+    "studio:lifecycle": "node scripts/studio-dev-lifecycle.mjs"
   },
   "devDependencies": {
     "genlayer-js": "2.0.0-rc.1"
