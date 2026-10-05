@@ -62,23 +62,24 @@ function writeEvidence(value) {
   fs.writeFileSync(EVIDENCE, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-function archivePrior(prior, reason) {
+function archivePrior(prior, reason, closureProof) {
   if (!prior?.contractAddress) return;
   const archiveDir = path.join(path.dirname(EVIDENCE), "archive");
   fs.mkdirSync(archiveDir, { recursive: true });
   const archived = {
     ...prior,
     active: false,
-    status: "ABANDONED_TESTNET",
+    status: closureProof ? "SUPERSEDED_ZERO_LIABILITY" : "ABANDONED_TESTNET",
     supersededReason: reason,
     supersededAt: new Date().toISOString(),
-    remainingAccounting: {
+    remainingAccounting: closureProof?.accounting ?? {
       totalReceived: "2 GEN",
       totalLocked: "0 GEN",
       totalCredits: "2 GEN",
       totalWithdrawn: "0 GEN",
     },
     noFurtherValueAuthorized: true,
+    ...(closureProof ? { closureProof } : {}),
   };
   fs.writeFileSync(path.join(archiveDir, `${prior.contractAddress.toLowerCase()}.json`), `${JSON.stringify(archived, null, 2)}\n`, "utf8");
 }
@@ -95,6 +96,7 @@ function safeReceipt(hash, receipt) {
     transactionHash: String(hash),
     status: String(receipt.statusName ?? receipt.status ?? ""),
     executionResult: String(receipt.txExecutionResultName ?? receipt.txExecutionResult ?? ""),
+    result: isSuccessful(receipt) ? "SUCCESS" : "FAILURE",
   };
 }
 
@@ -123,13 +125,36 @@ async function main() {
     console.log(`STUDIO_DEV_PREFLIGHT chainId=${EXPECTED_CHAIN_ID} rpc=${endpoint} deployer=${account.address} balance=${formatGen(balance)}`);
     return;
   }
-  if (command !== "deploy" && command !== "recover") throw new Error("usage: node scripts/studio-dev.mjs [preflight|deploy|recover <transaction-hash>]");
-  if (dirty() && command === "deploy") throw new Error("refusing deployment from a dirty working tree");
+  if (!["deploy", "redeploy", "recover"].includes(command)) throw new Error("invalid deployment command");
+  if (dirty() && command !== "recover") throw new Error("refusing deployment from a dirty working tree");
   const prior = readEvidence();
-  if (prior?.active && prior?.status === "FINALIZED" && prior?.sourceSha256 === sourceHash()) {
+  if (command === "recover") {
+    const pendingFile = path.join(PROJECT, ".local", "deployment-pending.json");
+    if (!fs.existsSync(pendingFile)) throw new Error("no pending deployment identity to recover");
+    const pending = JSON.parse(fs.readFileSync(pendingFile, "utf8"));
+    if (pending.hash !== process.argv[3] || pending.chainId !== EXPECTED_CHAIN_ID || pending.sourceSha256 !== sourceHash()) {
+      throw new Error("pending deployment source/network/hash identity mismatch");
+    }
+  }
+  if (command === "deploy" && prior?.active && prior?.status === "FINALIZED" && prior?.sourceSha256 === sourceHash()) {
     console.log(`STUDIO_DEV_DEPLOYMENT_REUSED contract=${prior.contractAddress}`);
     return;
   }
+  let closureProof;
+  const pendingFile = path.join(PROJECT, ".local", "deployment-pending.json");
+  if (prior?.active && command !== "deploy") {
+    const accounting = JSON.parse(String(await client.readContract({ address: prior.contractAddress, functionName: "get_accounting" })));
+    const balance = await client.getBalance({ address: prior.contractAddress });
+    if (accounting.total_locked !== "0" || accounting.total_credits !== "0" || balance !== 0n) {
+      throw new Error("prior revision has unrecovered liability or native balance");
+    }
+    closureProof = {
+      checkedAt: new Date().toISOString(),
+      contractBalance: formatGen(balance),
+      accounting: Object.fromEntries(Object.entries(accounting).map(([key, value]) => [key, formatGen(value)])),
+    };
+  }
+  if (command !== "recover" && fs.existsSync(pendingFile)) throw new Error("recover the recorded pending deployment before another submission");
   const fees = await client.estimateTransactionFees();
   const hash = command === "recover" ? process.argv[3] : await client.deployContract({
     code: fs.readFileSync(CONTRACT, "utf8"),
@@ -137,6 +162,8 @@ async function main() {
     fees: { distribution: fees.distribution, feeValue: fees.feeValue },
   });
   if (!/^0x[0-9a-fA-F]{64}$/.test(String(hash ?? ""))) throw new Error("missing or invalid deployment transaction hash");
+  fs.mkdirSync(path.dirname(pendingFile), { recursive: true });
+  fs.writeFileSync(pendingFile, JSON.stringify({ hash: String(hash), chainId: EXPECTED_CHAIN_ID, sourceSha256: sourceHash(), priorAddress: prior?.contractAddress ?? null }, null, 2));
   console.log(`${command === "recover" ? "STUDIO_DEV_RECOVERING" : "STUDIO_DEV_DEPLOY_SUBMITTED"} hash=${hash}`);
   const receipt = await client.waitForTransactionReceipt({ hash, waitUntil: "finalized", interval: 5000, retries: 120 });
   if (!isSuccessful(receipt)) {
@@ -167,14 +194,23 @@ async function main() {
     smoke: { method: "get_accounting", result: accounting },
   };
   if (prior?.contractAddress && prior.contractAddress.toLowerCase() !== address.toLowerCase()) {
-    archivePrior(prior, "EOA withdrawal used the Intelligent Contract transfer boundary; external transfer could not execute. Replaced under the broken-contract exception.");
+    const oldLifecycle = path.join(PROJECT, "docs", "evidence", "studio-dev", "lifecycle.json");
+    if (fs.existsSync(oldLifecycle)) {
+      const lifecycle = JSON.parse(fs.readFileSync(oldLifecycle, "utf8"));
+      if (lifecycle.contractAddress?.toLowerCase() !== prior.contractAddress.toLowerCase()) throw new Error("prior lifecycle identity mismatch");
+      const archiveDir = path.join(path.dirname(EVIDENCE), "archive");
+      fs.mkdirSync(archiveDir, { recursive: true });
+      fs.writeFileSync(path.join(archiveDir, `${prior.contractAddress.toLowerCase()}-lifecycle.json`), `${JSON.stringify(lifecycle, null, 2)}\n`);
+    }
+    archivePrior(prior, closureProof ? "Same-source verification revision to capture native balance snapshots; prior revision recovered to zero liability." : "EOA withdrawal used the Intelligent Contract transfer boundary; external transfer could not execute. Replaced under the broken-contract exception.", closureProof);
   }
   writeEvidence(evidence);
+  fs.unlinkSync(pendingFile);
   console.log(`STUDIO_DEV_DEPLOYED contract=${address}`);
   console.log("STUDIO_DEV_SMOKE get_accounting=zeroed");
 }
 
 main().catch((error) => {
-  console.error(`STUDIO_DEV_COMMAND_FAILED ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`STUDIO_DEV_COMMAND_FAILED name=${error?.name ?? "Error"} code=${typeof error?.code === "number" ? error.code : "unavailable"}`);
   process.exitCode = 1;
 });

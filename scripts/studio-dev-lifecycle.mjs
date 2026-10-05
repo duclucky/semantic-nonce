@@ -78,11 +78,14 @@ async function main() {
     role, createClient({ chain: studioDevnet, endpoint, account }),
   ]));
   const address = deployment.contractAddress;
+  const chainId = Number(BigInt(await clients.principal.request({ method: "eth_chainId", params: [] })));
+  if (chainId !== 61997) throw new Error("RPC chain identity mismatch");
   let state = readJson(STATE);
   if (state.contractAddress?.toLowerCase() !== address.toLowerCase()) {
     state = { contractAddress: address, leaseId: `semantic-demo-${deployment.sourceCommit.slice(0, 7)}`, hashes: {} };
   }
   state.hashes ??= {};
+  state.snapshots ??= {};
   writeJson(STATE, state, 0o600);
 
   if (state.pending?.hash) {
@@ -119,6 +122,8 @@ async function main() {
       quote = await client.estimateTransactionFees();
       console.log(`LIFECYCLE_FEE_SIMULATION_FALLBACK role=${role} method=${method}`);
     }
+    const available = await client.getBalance({ address: client.account.address });
+    if (available < value + quote.feeValue) throw new Error("actor balance cannot cover value and measured fee deposit");
     const hash = await client.writeContract({
       address, functionName: method, args, value,
       fees: {
@@ -202,10 +207,18 @@ async function main() {
       await write("agent", "submit_action", [state.leaseId, actionId, text]);
       action = await actionOrNull(actionId);
     }
+    const beforeReview = await read("get_accounting");
     while ((action.status === "SUBMITTED" || action.status === "RETRYABLE") && Number(action.attempt_count) < 2) {
       await write("principal", "review_action", [state.leaseId, actionId]);
       action = await actionOrNull(actionId);
     }
+    const afterReview = await read("get_accounting");
+    state.snapshots[actionId] ??= {
+      beforeReview: Object.fromEntries(Object.entries(beforeReview).map(([key, value]) => [key, formatGen(value)])),
+      afterReview: Object.fromEntries(Object.entries(afterReview).map(([key, value]) => [key, formatGen(value)])),
+    };
+    if (actionId === "replace-key" && JSON.stringify(beforeReview) !== JSON.stringify(afterReview)) throw new Error("replay changed GEN accounting");
+    writeJson(STATE, state, 0o600);
     if (actionId === "replace-key" && action.status !== "REPLAY_DENIED") {
       throw new Error(`semantic replay expected REPLAY_DENIED, received ${action.status}`);
     }
@@ -219,7 +232,32 @@ async function main() {
   }
 
   const agentCredit = await read("get_credit", [accounts.agent.address]);
-  if (agentCredit.amount === String(BUDGET)) await write("agent", "withdraw_credit", []);
+  if (agentCredit.amount === String(BUDGET)) {
+    const nativeBefore = await clients.principal.getBalance({ address });
+    const recipientBefore = await clients.principal.getBalance({ address: accounts.agent.address });
+    if (nativeBefore !== BUDGET) throw new Error("native balance before withdrawal differs from the 2 GEN credit");
+    state.withdrawalProof = { nativeBefore: formatGen(nativeBefore), recipientBefore: formatGen(recipientBefore) };
+    writeJson(STATE, state, 0o600);
+    await write("agent", "withdraw_credit", []);
+  }
+  if (state.withdrawalProof) {
+    const nativeAfter = await clients.principal.getBalance({ address });
+    const recipientAfter = await clients.principal.getBalance({ address: accounts.agent.address });
+    if (nativeAfter !== 0n) throw new Error("withdrawal left native GEN in the contract");
+    const hash = Object.entries(state.hashes).find(([key]) => key.endsWith("_agent_withdraw_credit"))?.[1];
+    const transaction = await clients.principal.getTransaction({ hash });
+    const transfer = transaction.messages?.find((message) => String(message.recipient).toLowerCase() === accounts.agent.address.toLowerCase());
+    if (!isSuccessful(transaction) || !transfer || BigInt(transfer.value) !== BUDGET) throw new Error("successful exact agent transfer not found");
+    Object.assign(state.withdrawalProof, {
+      nativeAfter: formatGen(nativeAfter), nativeDecrease: "2 GEN",
+      recipientAfter: formatGen(recipientAfter), recipient: accounts.agent.address,
+      transferValue: formatGen(transfer.value), parentTransaction: hash,
+      result: "SUCCESS", checkedAt: new Date().toISOString(),
+      recipientBalanceIncludesNetworkFees: true,
+    });
+    writeJson(STATE, state, 0o600);
+    console.log(`WITHDRAWAL_PROOF nativeBefore=${state.withdrawalProof.nativeBefore} nativeAfter=${state.withdrawalProof.nativeAfter} transfer=${state.withdrawalProof.transferValue}`);
+  }
   lease = await leaseOrNull();
   const accounting = await read("get_accounting");
   const actions = Object.fromEntries(await Promise.all(examples.map(async ([id]) => [id, await actionOrNull(id)])));
@@ -244,6 +282,8 @@ async function main() {
       totalWithdrawn: formatGen(accounting.total_withdrawn),
     },
     transactions: state.hashes,
+    accountingSnapshots: state.snapshots,
+    ...(state.withdrawalProof ? { withdrawalProof: state.withdrawalProof } : {}),
     evidenceIsSanitized: true,
   };
   writeJson(EVIDENCE, evidence);
@@ -251,6 +291,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`LIFECYCLE_FAILED ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`LIFECYCLE_FAILED name=${error?.name ?? "Error"} code=${typeof error?.code === "number" ? error.code : "unavailable"}`);
   process.exitCode = 1;
 });

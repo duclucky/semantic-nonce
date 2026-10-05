@@ -53,7 +53,7 @@ npm run check
 .\.venv\Scripts\gltest.exe tests\
 ```
 
-The verified local suite contains 28 tests: 24 direct/source tests and four
+The verified local suite contains 43 tests: 39 direct/source tests and four
 deployment-receipt parser tests. It covers semantic replay, malicious normalized
 outputs, prompt injection, role isolation, duplicate operations, exact expiry
 boundaries, retry bounds, accounting conservation, ticket consumption, refund,

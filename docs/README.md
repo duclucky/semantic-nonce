@@ -6,8 +6,8 @@
 - Project name: SemanticNonce
 - Project slug: `semantic-nonce`
 - Category: `Intelligent Contracts`
-- Status: `BUILDING` only after this specification gate passes
-- Repository: child Git repository `semantic-nonce`; public URL pending Phase 9
+- Status: verification refresh of the original standalone IDEA-032 primitive
+- Repository: https://github.com/duclucky/semantic-nonce (public)
 - Target network: Studio Dev, chain ID 61997
 
 ## One-sentence product hook
@@ -67,7 +67,7 @@ a ticket or 1 GEN credit.
 | Contract count | PASS | One contract owns authority, history, tickets, purse, credits, recovery, and withdrawal; a second contract would be pass-through. |
 | Differentiation | PASS | Sequential history-aware authorization consumption differs from GrantLattice attenuation, ConcordBatch scheduling, Disclosure Dividend overlap payout, and SkillSlot matching on at least four fingerprint fields. |
 | Claim-to-code | PASS | The matrix below maps every retained claim to a method/state, canonical view, direct test, and required Studio Dev proof. |
-| Full lifecycle | PASS | The planned lifecycle funds 2 GEN, authorizes novel A, denies paraphrased A without accounting change, authorizes novel B, consumes both tickets, withdraws 2 GEN, and reads zero liability. |
+| Full lifecycle | PASS | The successful Studio Dev lifecycle funds 2 GEN, authorizes novel A, denies paraphrased A without accounting change, authorizes novel B, consumes both tickets, withdraws 2 GEN, and reads zero liability. |
 | Scope honesty | PASS | The contract does not prove external execution, replace sink idempotency, authenticate offchain effects, or claim adoption. |
 
 One failed gate requires redesign or rejection; scores cannot compensate.
@@ -129,8 +129,8 @@ scripts, sanitized Studio Dev lifecycle evidence, and Explorer links.
 - `TreeMap[str, AttemptRecord] attempts`, keyed by `attempt_id`
 - `TreeMap[str, str] lease_action_ids`, keyed by `lease_id:<index>` for bounded
   ordered history
-- `TreeMap[str, bigint] credits`, keyed by lowercase address string
-- `TreeMap[str, bigint] lease_liability`, plus global received, credited,
+- `TreeMap[str, CreditRecord] credits`, keyed by lowercase address string
+- Per-lease `LeaseRecord.locked`, plus global received, credit,
   withdrawn, and locked accounting totals
 - Persisted money is `bigint` base units; every public document and demo labels
   it as GEN. `GEN_SCALE = 10**18`, and v1 receives exactly 2 GEN.
@@ -203,7 +203,7 @@ credit > 0 --withdraw_credit/credit owner--> external transfer, credit zero
 
 | Method | Caller | Allowed states | Forbidden states | Temporal/expiry gate | Idempotency | Value/accounting effect | Views affected | Negative tests |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `create_lease` | New principal (`gl.message.sender`) | Unique lease ID; valid distinct agent/consumer; bounded policy; exactly 2 GEN | Existing ID; invalid roles/policy/value/expiry | `now < expiry <= now + 30d`; equality at `now` is invalid | Duplicate ID rejects before value accounting | `received += 2 GEN`, `locked += 2 GEN`, lease liability `2 GEN` | lease, accounting, credit | duplicate; 0/1 GEN; bad role; empty/oversize policy; expiry `now-1/now/now+1`; over max; unchanged on reject; payable metadata |
+| `create_lease` | New principal (`gl.message.sender_address`) | Unique lease ID; valid distinct agent/consumer; bounded policy; exactly 2 GEN | Existing ID; invalid roles/policy/value/expiry | `now < expiry <= now + 30d`; equality at `now` is invalid | Duplicate ID rejects before value accounting | `received += 2 GEN`, `locked += 2 GEN`, lease liability `2 GEN` | lease, accounting, credit | duplicate; 0/1 GEN; bad role; empty/oversize policy; expiry `now-1/now/now+1`; over max; unchanged on reject; payable metadata |
 | `submit_action` | Named agent | Lease `ACTIVE`; no pending action; fewer than six actions | Wrong caller; `EXHAUSTED`; `EXPIRED_CLOSED`; duplicate ID; pending action | `now < expiry`; equality is late even if phase stale | Unique action ID/revision; duplicate rejects | No GEN movement; append action and update history digest | lease, action, action list, accounting | wrong caller/state; duplicate; empty/oversize; expiry-1/exact/+1 with stale `ACTIVE`; accounting unchanged |
 | `review_action` | Any caller | Action `SUBMITTED` or `RETRYABLE`; lease `ACTIVE`; attempt < 2; complete canonical input | Terminal action; exhausted/closed lease; malformed history; attempt cap | `now < expiry`; equality is late even if states stale | Terminal decisions reject replay; only `RETRYABLE` may create next attempt | Novel: locked/liability `-1 GEN`, agent credit `+1 GEN`, budget `-1`, ticket opens; replay/out-of-scope/retry: zero value | lease, action, attempt, ticket, credit, accounting | wrong state; boundary-1/exact/+1; bad enum/ID/digest/coverage; missing/extra replay target; malicious payee/amount; duplicate settlement; accounting unchanged on rejection |
 | `consume_ticket` | Named consumer | Action `AUTHORIZED`, ticket `OPEN`, lease `ACTIVE` or `EXHAUSTED` | Wrong caller; denied/retryable; consumed; closed/expired | `now < expiry`; equality is late even if ticket remains `OPEN` | First call sets consumed; second rejects | No GEN movement; consumes execution right once | action, ticket, lease | wrong caller/state; duplicate; expiry-1/exact/+1 with stale ticket; accounting unchanged |
@@ -220,7 +220,7 @@ Scripts and canonical reads cannot be presented as frontend evidence.
 ## Evidence policy
 
 - Authoritative sources: canonical SemanticNonce contract state only in v1.
-- Provenance/authentication: `gl.message.sender` role checks for principal,
+- Provenance/authentication: `gl.message.sender_address` role checks for principal,
   agent, and consumer transactions; contract-authored attempt/ticket/accounting
   records.
 - Authorized attestor/signer: principal for authorization policy and roles;
@@ -236,7 +236,7 @@ Scripts and canonical reads cannot be presented as frontend evidence.
 - Allowed schemes/domains/paths: N/A because no web fetch is allowed in v1.
 - Time/window rules: creation and all action/review/consume writes use the
   explicit intervals above.
-- Size/count bounds: policy 1-2,000 characters; action 1-800 characters;
+- Size/count bounds: policy 1-4,000 characters; action 1-4,000 characters;
   IDs 1-64 ASCII characters; six total actions; two authorized actions; two
   attempts per action; two prior authorized actions in the prompt.
 - Missing evidence: deterministic rejection before nondeterminism.
@@ -275,8 +275,9 @@ Scripts and canonical reads cannot be presented as frontend evidence.
   nondeterministic function.
 - Extraction: model identifies authorized objective/target/effect boundaries
   and compares the candidate's primary intended effect to prior effects.
-- Normalization: strip unsupported keys; uppercase allowed enum fields; reject
+- Normalization: require the exact key set and uppercase enum spellings; reject
   unknown IDs; deterministic code validates complete cross-field invariants.
+  Malformed input maps to non-penalizing `RETRYABLE`, never a hard consequence.
 - Structured output: `lease_id`, `action_id`, `policy_digest`,
   `history_digest`, `coverage`, `scope`, `novelty`, `replay_of`, and bounded
   `reason`.
@@ -300,7 +301,8 @@ Scripts and canonical reads cannot be presented as frontend evidence.
 - Semantic rule: return true only when leader and validator agree on every
   critical field above. Different scope, novelty, coverage, or replay target
   decisions must return false; reason wording may differ.
-- Rejection conditions: leader is not `gl.vm.Return`; parse/type failure;
+- Rejection boundaries: validator rejects a leader that is not `gl.vm.Return`
+  or disagrees on critical meaning; normalization rejects parse/type failure;
   unknown enum/ID; wrong digest; extra/missing/duplicate target; incomplete
   coverage for a hard consequence; invalid cross-field combination; model
   attempts to choose payee, amount, budget, consumer, or destination.
@@ -367,9 +369,8 @@ explicit broken-contract replacement exception and receives no further value.
 - `get_lease(lease_id)`
 - `get_action(lease_id, action_id)`
 - `get_attempt(lease_id, action_id, attempt_number)`
-- `get_action_ids(lease_id)`
+- `get_action_id(lease_id, index)`
 - `get_ticket(lease_id, action_id)`
-- `can_consume(lease_id, action_id)`
 - `get_credit(address)`
 - `get_accounting()`
 
@@ -526,3 +527,21 @@ required or allowed for this contribution.
   value, or a nonzero terminal liability.
 - Studio Dev cannot complete a bounded successful consensus smoke using the
   exact deployed source.
+
+## Adoption path
+
+Three integration targets use the existing API without copying the judge:
+
+1. Tool gateway: read `get_ticket(lease_id, action_id)`, then call
+   `consume_ticket(lease_id, action_id)` as the locked consumer. Execute only
+   after successful finalization and a fresh `CONSUMED` read; enforce sink
+   idempotency separately.
+2. DAO intake: read `get_action` and enumerate `get_action_id(lease_id, index)`;
+   accept only authorized tickets under the DAO's locked policy.
+3. AI/oracle broker: read `get_lease`, `get_ticket`, and `get_credit`; consume
+   the ticket before admitting a paid request. Credit is for authorization,
+   not a claim that the request completed.
+
+Potential substantial milestones are multi-consumer leases, deterministically
+verified downstream execution receipts, and a policy-specific tool adapter.
+No external consumer integration or adoption is claimed for v1.
