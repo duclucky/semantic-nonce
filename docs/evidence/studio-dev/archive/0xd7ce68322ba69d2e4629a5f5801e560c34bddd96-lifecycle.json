@@ -1,0 +1,55 @@
+{
+  "network": "studio-dev",
+  "chainId": 61997,
+  "contractAddress": "0xD7CE68322ba69D2e4629A5F5801E560C34BdDD96",
+  "explorerUrl": "https://explorer-studio-dev.genlayer.com/address/0xD7CE68322ba69D2e4629A5F5801E560C34BdDD96",
+  "leaseId": "semantic-demo-73e8dc8",
+  "roles": {
+    "principal": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
+    "agent": "0x45aD397c438397A702B53a7499a78D08961D39Db",
+    "consumer": "0x45248be151F7f7e230150db23774733Cd966Eb45"
+  },
+  "demoPurse": "2 GEN",
+  "phase": "EXHAUSTED",
+  "decisions": {
+    "rotate-key": {
+      "status": "AUTHORIZED",
+      "replayOf": "",
+      "attempts": 1
+    },
+    "replace-key": {
+      "status": "REPLAY_DENIED",
+      "replayOf": "rotate-key",
+      "attempts": 1
+    },
+    "publish-notes": {
+      "status": "AUTHORIZED",
+      "replayOf": "",
+      "attempts": 1
+    }
+  },
+  "tickets": {
+    "rotate-key": "CONSUMED",
+    "publish-notes": "CONSUMED"
+  },
+  "agentCreditAfterWithdrawal": "0 GEN",
+  "accounting": {
+    "totalReceived": "2 GEN",
+    "totalLocked": "0 GEN",
+    "totalCredits": "0 GEN",
+    "totalWithdrawn": "2 GEN"
+  },
+  "transactions": {
+    "1_principal_create_lease": "0x63524785367e24d67e9cd9b6b0cb60e278fe6658759fe0771b1e4f309122e591",
+    "2_agent_submit_action": "0x1906884955e4cb99374c0a8dfccd934ef4dc5ab79fbc02828ce1b4f74899a44a",
+    "3_principal_review_action": "0x76f4239ebde0cbdade8f36c71138536f0c7e311921c7b4ea02cedc74ad241de2",
+    "4_consumer_consume_ticket": "0xa924b127e6ca081a924962b63a97d6e10a1d7118ececb8fa392a9be23950c268",
+    "5_agent_submit_action": "0xfaffdd112788ca6b9979fb3ef1f57c621fa042f7e03908587f9d7a8fa86d367e",
+    "6_principal_review_action": "0xc39d2b3ae05192bfe3ae475f66ec2eccf4c5875ab28d2cff08b966c6d7764c0a",
+    "7_agent_submit_action": "0x0d6e49bc9e607cf78f686bdcf5a816e9699844993b2cb49b5e63acb7d55c0e75",
+    "8_principal_review_action": "0x3ef231a9078592e4eb27a085763063198bb8a53f8f2bac66b30330a67fc0097a",
+    "9_consumer_consume_ticket": "0xc95e1077406581726dab8d5314c7575e2d5c8585758e0ef02275c8b5f680e190",
+    "10_agent_withdraw_credit": "0xceb180a187526e6fe9d05bcf89b573ecbf660efe6c10d2affad185e72459f46a"
+  },
+  "evidenceIsSanitized": true
+}

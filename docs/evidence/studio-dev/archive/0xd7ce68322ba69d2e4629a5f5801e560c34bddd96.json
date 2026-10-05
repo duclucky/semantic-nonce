@@ -1,0 +1,52 @@
+{
+  "network": "studio-dev",
+  "chainId": 61997,
+  "rpc": "https://studio-dev.genlayer.com/api",
+  "contract": "SemanticNonce",
+  "contractAddress": "0xD7CE68322ba69D2e4629A5F5801E560C34BdDD96",
+  "explorerUrl": "https://explorer-studio-dev.genlayer.com/address/0xD7CE68322ba69D2e4629A5F5801E560C34BdDD96",
+  "deployTxUrl": "https://explorer-studio-dev.genlayer.com/transactions/0xcf4c56abe790e5de5e62ad1dae7ee370247b2e40d2c876d2d24b61cceea8729f",
+  "status": "SUPERSEDED_ZERO_LIABILITY",
+  "deploy": {
+    "transactionHash": "0xcf4c56abe790e5de5e62ad1dae7ee370247b2e40d2c876d2d24b61cceea8729f",
+    "status": "7",
+    "result": "SUCCESS",
+    "executionResult": "FINISHED_WITH_RETURN"
+  },
+  "feeDepositGen": "0.100000000000010352 GEN",
+  "sourceCommit": "73e8dc8e7310bdd91f15f3ba32be9a4f3d531b21",
+  "sourceSha256": "696f41557d8da5196e3654f2bcea6e8a877ca2b0e83fecee9e1338d155ea66e9",
+  "sourceDirtyAtDeployment": false,
+  "depends": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng",
+  "deployedAt": "2026-09-22T03:07:10.853Z",
+  "active": false,
+  "evidenceIsSanitized": true,
+  "smoke": {
+    "method": "get_accounting",
+    "result": {
+      "total_received": "0",
+      "total_locked": "0",
+      "total_credits": "0",
+      "total_withdrawn": "0"
+    }
+  },
+  "supersededReason": "Same-source verification revision to capture native balance snapshots; prior revision recovered to zero liability.",
+  "supersededAt": "2026-10-05T11:21:43.511Z",
+  "remainingAccounting": {
+    "total_received": "2 GEN",
+    "total_locked": "0 GEN",
+    "total_credits": "0 GEN",
+    "total_withdrawn": "2 GEN"
+  },
+  "noFurtherValueAuthorized": true,
+  "closureProof": {
+    "checkedAt": "2026-10-05T11:20:58.362Z",
+    "contractBalance": "0 GEN",
+    "accounting": {
+      "total_received": "2 GEN",
+      "total_locked": "0 GEN",
+      "total_credits": "0 GEN",
+      "total_withdrawn": "2 GEN"
+    }
+  }
+}

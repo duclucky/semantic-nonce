@@ -1,0 +1,169 @@
+{
+  "checkedAt": "2026-10-05T11:35:12.477Z",
+  "mode": "READ_ONLY",
+  "chainId": 61997,
+  "contractAddress": "0xAEb5A5F4ed4BCFF576D3cDa8e8A3d1d8f0e5E3B4",
+  "sourceSha256": "696f41557d8da5196e3654f2bcea6e8a877ca2b0e83fecee9e1338d155ea66e9",
+  "methods": [
+    "close_expired",
+    "consume_ticket",
+    "create_lease",
+    "get_accounting",
+    "get_action",
+    "get_action_id",
+    "get_attempt",
+    "get_credit",
+    "get_lease",
+    "get_ticket",
+    "review_action",
+    "submit_action",
+    "withdraw_credit"
+  ],
+  "leaseId": "semantic-demo-582f1e3",
+  "phase": "EXHAUSTED",
+  "decisions": {
+    "rotate-key": {
+      "status": "AUTHORIZED",
+      "replayOf": "",
+      "novelty": "NOVEL",
+      "ticket": "CONSUMED"
+    },
+    "replace-key": {
+      "status": "REPLAY_DENIED",
+      "replayOf": "rotate-key",
+      "novelty": "REPLAY",
+      "ticket": "NONE"
+    },
+    "publish-notes": {
+      "status": "AUTHORIZED",
+      "replayOf": "",
+      "novelty": "NOVEL",
+      "ticket": "CONSUMED"
+    }
+  },
+  "accounting": {
+    "total_received": "2 GEN",
+    "total_locked": "0 GEN",
+    "total_credits": "0 GEN",
+    "total_withdrawn": "2 GEN"
+  },
+  "nativeBalance": "0 GEN",
+  "receipts": [
+    {
+      "step": "deploy",
+      "hash": "0xb60ad373b33295163751b294934f0b9c51e48f9a79b733455ef801a439a64281",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN"
+    },
+    {
+      "step": "1_principal_create_lease",
+      "hash": "0x103b5dc173c4110f5a45a1720191ac1f2cb72de1ef88802573fd127e1f74e9c7",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN"
+    },
+    {
+      "step": "2_agent_submit_action",
+      "hash": "0x3c6f503d86ca933303d020df3539fedf55c0e3210c3107c1ce93843ac1323fd5",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN"
+    },
+    {
+      "step": "3_principal_review_action",
+      "hash": "0x2569939279957866f51f25457dabad0103881d350f48c7874b1a0166387001f6",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN",
+      "consensus": {
+        "leaderOnly": false,
+        "initialValidators": 5,
+        "result": "MAJORITY_AGREE"
+      }
+    },
+    {
+      "step": "4_consumer_consume_ticket",
+      "hash": "0x9e1dd8d3bdbab81a3d8839ee634776ffaca2c51975534a0c9e7c4f01e653a257",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN"
+    },
+    {
+      "step": "5_agent_submit_action",
+      "hash": "0xeb5920445b14e1c70907995ae3e5e88d4f2d1f12f7383e76d8156f237c8f40cd",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN"
+    },
+    {
+      "step": "6_principal_review_action",
+      "hash": "0xb48c9965f0e51ad9a786653f828bd6390fd4a126eb57afae21da105e1b9c06b1",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN",
+      "consensus": {
+        "leaderOnly": false,
+        "initialValidators": 5,
+        "result": "MAJORITY_AGREE"
+      }
+    },
+    {
+      "step": "7_agent_submit_action",
+      "hash": "0x52f397937ff7b47052b8142db7a1f7c16837c6f1313c9ae66193310854af5140",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN"
+    },
+    {
+      "step": "8_principal_review_action",
+      "hash": "0xdb7070fb94e120085315c177ea9ee5891082e83df5ba5ea40308eb41c11394d2",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN",
+      "consensus": {
+        "leaderOnly": false,
+        "initialValidators": 5,
+        "result": "MAJORITY_AGREE"
+      }
+    },
+    {
+      "step": "9_consumer_consume_ticket",
+      "hash": "0x51ec26e2ff14b1207a3c7f0810f4e7eed4fc7f00bb23c99bbd7567acf02c319b",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN"
+    },
+    {
+      "step": "10_agent_withdraw_credit",
+      "hash": "0x9361dd3aeb8e50ede80ecf0f760dc02efbd411f17f4e3a4aa5261bc48cc19bd5",
+      "status": 7,
+      "result": "SUCCESS",
+      "execution": "FINISHED_WITH_RETURN"
+    }
+  ],
+  "withdrawalProof": {
+    "nativeBefore": "2 GEN",
+    "recipientBefore": "16.660012970166649763 GEN",
+    "nativeAfter": "0 GEN",
+    "nativeDecrease": "2 GEN",
+    "recipientAfter": "18.65988666491664894 GEN",
+    "recipient": "0x45aD397c438397A702B53a7499a78D08961D39Db",
+    "transferValue": "2 GEN",
+    "parentTransaction": "0x9361dd3aeb8e50ede80ecf0f760dc02efbd411f17f4e3a4aa5261bc48cc19bd5",
+    "result": "SUCCESS",
+    "checkedAt": "2026-10-05T11:31:31.694Z",
+    "recipientBalanceIncludesNetworkFees": true
+  },
+  "explorer": [
+    {
+      "url": "https://explorer-studio-dev.genlayer.com/address/0xAEb5A5F4ed4BCFF576D3cDa8e8A3d1d8f0e5E3B4",
+      "httpStatus": 200
+    },
+    {
+      "url": "https://explorer-studio-dev.genlayer.com/transactions/0xb60ad373b33295163751b294934f0b9c51e48f9a79b733455ef801a439a64281",
+      "httpStatus": 200
+    }
+  ],
+  "evidenceIsSanitized": true
+}

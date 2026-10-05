@@ -3,6 +3,11 @@ $env:PYTHONUTF8 = "1"
 $ProjectRoot = Resolve-Path "$PSScriptRoot\.."
 $Python = "$ProjectRoot\.venv\Scripts\python.exe"
 
+foreach ($Script in @("studio-dev.mjs", "studio-dev-lifecycle.mjs", "verify-studio-dev.mjs")) {
+  & node --check "$ProjectRoot\scripts\$Script"
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
 Write-Output "[1/4] ASCII, header, contract count, and validator structure"
 & $Python -m pytest "$ProjectRoot\tests\direct\test_contract_source.py" -q
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

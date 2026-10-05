@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = "semantic-nonce"
 CATEGORY = "intelligent-contracts"
-ADDRESS = "0xD7CE68322ba69D2e4629A5F5801E560C34BdDD96"
+ADDRESS = "0xAEb5A5F4ed4BCFF576D3cDa8e8A3d1d8f0e5E3B4"
 EXPLORER = f"https://explorer-studio-dev.genlayer.com/address/{ADDRESS}"
 REPO = "https://github.com/duclucky/semantic-nonce"
 DESCRIPTION_CHARS = 861
@@ -77,6 +77,15 @@ def main() -> int:
         }
         if lifecycle.get("accounting") != expected_accounting or lifecycle.get("agentCreditAfterWithdrawal") != "0 GEN":
             blockers.append("lifecycle accounting")
+        proof = lifecycle.get("withdrawalProof", {})
+        withdrawal_hashes = [value for key, value in lifecycle.get("transactions", {}).items()
+                             if key.endswith("_agent_withdraw_credit")]
+        if (proof.get("nativeBefore") != "2 GEN" or proof.get("nativeAfter") != "0 GEN"
+                or proof.get("nativeDecrease") != "2 GEN" or proof.get("transferValue") != "2 GEN"
+                or proof.get("result") != "SUCCESS"
+                or proof.get("recipient") != lifecycle.get("roles", {}).get("agent")
+                or len(withdrawal_hashes) != 1 or proof.get("parentTransaction") != withdrawal_hashes[0]):
+            blockers.append("exact native GEN withdrawal proof")
     except Exception as error:
         blockers.append(f"network evidence invalid: {error}")
     if (ROOT / "frontend").exists():

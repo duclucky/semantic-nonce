@@ -136,3 +136,54 @@ def test_empty_lease_refund_and_withdrawal_have_no_orphaned_value(
     }
     with pytest.raises(Exception, match="no credit"):
         contract.withdraw_credit()
+
+
+@pytest.mark.parametrize("offset", [-1, 0, 1])
+def test_creation_expiry_lower_boundary_has_no_rejected_value_mutation(
+    offset, direct_deploy, direct_vm, direct_owner, direct_alice, direct_bob
+):
+    contract = direct_deploy(CONTRACT_PATH)
+    set_time(direct_vm, BASE_TIME)
+    direct_vm.sender = direct_owner
+    direct_vm.value = BUDGET
+    before = view(contract.get_accounting())
+    if offset > 0:
+        contract.create_lease("lease-1", direct_alice, direct_bob, "policy", BASE_TIME + offset)
+        assert view(contract.get_lease("lease-1"))["locked"] == str(BUDGET)
+    else:
+        with pytest.raises(Exception, match="future"):
+            contract.create_lease("lease-1", direct_alice, direct_bob, "policy", BASE_TIME + offset)
+        assert view(contract.get_accounting()) == before
+        with pytest.raises(Exception, match="not found"):
+            contract.get_lease("lease-1")
+
+
+@pytest.mark.parametrize("offset", [-1, 0, 1])
+def test_creation_thirty_day_upper_boundary_is_inclusive(
+    offset, direct_deploy, direct_vm, direct_owner, direct_alice, direct_bob
+):
+    contract = direct_deploy(CONTRACT_PATH)
+    expiry = BASE_TIME + 30 * 24 * 60 * 60 + offset
+    if offset <= 0:
+        create_lease(contract, direct_vm, direct_owner, direct_alice, direct_bob, expiry=expiry)
+        assert view(contract.get_lease("lease-1"))["expires_at"] == str(expiry)
+    else:
+        before = view(contract.get_accounting())
+        with pytest.raises(Exception, match="30 day"):
+            create_lease(contract, direct_vm, direct_owner, direct_alice, direct_bob, expiry=expiry)
+        assert view(contract.get_accounting()) == before
+
+
+def test_principal_cannot_withdraw_the_agents_credit(
+    direct_deploy, direct_vm, direct_owner, direct_alice, direct_bob
+):
+    contract = direct_deploy(CONTRACT_PATH)
+    create_lease(contract, direct_vm, direct_owner, direct_alice, direct_bob)
+    submit(contract, direct_vm, direct_alice)
+    review(contract, direct_vm, direct_owner)
+    before = view(contract.get_accounting())
+    direct_vm.sender = direct_owner
+    with pytest.raises(Exception, match="no credit"):
+        contract.withdraw_credit()
+    assert view(contract.get_accounting()) == before
+    assert view(contract.get_credit(direct_alice))["amount"] == str(GEN)
