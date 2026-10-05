@@ -50,6 +50,7 @@ the reCAPTCHA; this repository does not claim that final submission action.
 
 - Lifecycle: https://github.com/duclucky/semantic-nonce/blob/main/docs/evidence/studio-dev/lifecycle.json
 - Fresh verification: https://github.com/duclucky/semantic-nonce/blob/main/docs/evidence/studio-dev/reverification.json
+- Successful source/evidence CI: https://github.com/duclucky/semantic-nonce/actions/runs/37304031115
 - CI workflow: https://github.com/duclucky/semantic-nonce/actions/workflows/check.yml
 
 Only one contract source is submitted. Historical deployment revisions are

@@ -487,15 +487,15 @@ backed by the deployed revision.
 
 ### Intelligent Contracts
 
-- [ ] Reusable primitive.
-- [ ] Semantic validator judgment.
-- [ ] Direct consequence.
-- [ ] Reuse proof through documented views and scripts.
-- [ ] Adversarial tests.
-- [ ] Real Studio Dev lifecycle.
-- [ ] Canonical evidence.
-- [ ] Public contract-focused repository and successful CI.
-- [ ] Objective precheck reports `NO BLOCKER`.
+- [x] Reusable primitive.
+- [x] Semantic validator judgment.
+- [x] Direct consequence.
+- [x] Reuse proof through documented views and scripts.
+- [x] Adversarial tests.
+- [x] Real Studio Dev lifecycle.
+- [x] Canonical evidence.
+- [x] Public contract-focused repository and successful CI.
+- [x] Objective precheck reports `NO BLOCKER`.
 
 ### Projects
 
@@ -545,3 +545,16 @@ Three integration targets use the existing API without copying the judge:
 Potential substantial milestones are multi-consumer leases, deterministically
 verified downstream execution receipts, and a policy-specific tool adapter.
 No external consumer integration or adoption is claimed for v1.
+
+## Completion verification
+
+Verified on 2026-10-05 against the active Studio Dev revision. `npm run check`
+and `gltest tests/` passed all 50 tests. The source/evidence commit
+`8ad4b73fef153eea90a891cc6f02d5b9b28d3484` has successful
+[Windows CI](https://github.com/duclucky/semantic-nonce/actions/runs/37304031115).
+The exact project precheck returned `NO BLOCKER` with category
+`intelligent-contracts` and the active Explorer address. Shared grading checks
+also returned zero blockers and zero warnings with dynamic checks enabled.
+See the deployment, lifecycle and fresh read-only verification records under
+`docs/evidence/studio-dev/`. These are readiness checks, not a claim of a Portal
+submission, acceptance, official score or external adoption.
